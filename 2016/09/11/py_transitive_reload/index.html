@@ -84,16 +84,22 @@
 
 
 
-<meta name="description" content="Life is 10% what happens to me and 90% of how i react to it.">
+<meta name="description" content="Python编程中，当我们可使用imp模块的reload函数对指定模块进行重载时，在该指定模块内导入的其他模块，不会由于本模块的重载而重载。
+举例说明，假设mod_a中导入了mod_b和mod_c两个模块，那么我们使用reload(mod_a)对模块a进行重载时，并不会传递性的对模块b和模块c也进行重载。
+那么如何实现这种传递性的模块重载（Transitive Reload）呢？我们可利用模块的_">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Python传递性模块重载">
 <meta property="og:url" content="http://yoursite.com/2016/09/11/py_transitive_reload/index.html">
 <meta property="og:site_name" content="Neal Xu's Blog">
-<meta property="og:description" content="Life is 10% what happens to me and 90% of how i react to it.">
-<meta property="og:updated_time" content="2016-09-11T11:34:27.178Z">
+<meta property="og:description" content="Python编程中，当我们可使用imp模块的reload函数对指定模块进行重载时，在该指定模块内导入的其他模块，不会由于本模块的重载而重载。
+举例说明，假设mod_a中导入了mod_b和mod_c两个模块，那么我们使用reload(mod_a)对模块a进行重载时，并不会传递性的对模块b和模块c也进行重载。
+那么如何实现这种传递性的模块重载（Transitive Reload）呢？我们可利用模块的_">
+<meta property="og:updated_time" content="2016-09-11T11:59:16.835Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Python传递性模块重载">
-<meta name="twitter:description" content="Life is 10% what happens to me and 90% of how i react to it.">
+<meta name="twitter:description" content="Python编程中，当我们可使用imp模块的reload函数对指定模块进行重载时，在该指定模块内导入的其他模块，不会由于本模块的重载而重载。
+举例说明，假设mod_a中导入了mod_b和mod_c两个模块，那么我们使用reload(mod_a)对模块a进行重载时，并不会传递性的对模块b和模块c也进行重载。
+那么如何实现这种传递性的模块重载（Transitive Reload）呢？我们可利用模块的_">
 
 
 
@@ -305,7 +311,52 @@
       
 
       
-        
+        <p>Python编程中，当我们可使用<code>imp</code>模块的<code>reload</code>函数对指定模块进行重载时，在该指定模块内导入的其他模块，不会由于本模块的重载而重载。</p>
+<p>举例说明，假设<code>mod_a</code>中导入了<code>mod_b</code>和<code>mod_c</code>两个模块，那么我们使用<code>reload(mod_a)</code>对模块a进行重载时，并不会传递性的对模块b和模块c也进行重载。</p>
+<p>那么如何实现这种传递性的模块重载（Transitive Reload）呢？我们可利用模块的<code>__dict__</code>属性来实现。代码实现如下：</p>
+<pre><code># -*- coding:utf-8 -*-
+
+&quot;&quot;&quot;
+reload_all.py: transitively reload nested modules
+&quot;&quot;&quot;
+
+import types
+from imp import reload
+
+def status(module):
+    print(&apos;reloading &apos; + module.__name__)
+
+def transitive_reload(module, visited):
+    if not module in visited:
+        status(module)
+        reload(module)
+        visited[module] = None
+        for attrobj in module.__dict__.values():
+            if type(attrobj) == types.ModuleType:
+                transitive_reload(attrobj, visited)
+
+def my_reload_all(module):
+    visited = {}
+    transitive_reload(module, visited)
+
+if __name__ == &apos;__main__&apos;:
+    import reload_all
+    my_reload_all(reload_all)
+</code></pre><p>脚本直接运行后，执行输出如下：</p>
+<pre><code>&gt;&gt;&gt; python reload_all.py
+reloading reload_all
+reloading types
+</code></pre><p>交互模式下对<code>os</code>模块进行传递性重载，执行输出如下：</p>
+<pre><code>&gt;&gt;&gt; import os
+&gt;&gt;&gt; import reload_all
+&gt;&gt;&gt; reload_all.my_reload_all(os)
+reloading os
+reloading stat
+reloading sys
+reloading errno
+reloading ntpath
+reloading genericpath
+</code></pre>
       
     </div>
 
